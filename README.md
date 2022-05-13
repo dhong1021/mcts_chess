@@ -1,0 +1,20 @@
+# Monte Carlo Tree Search
+- drawplayer - 게임의 주체를 객체화한 코드입니다.
+- gamestate - 게임에 필요한 조건들을 작성해둠
+- player - 플레이어의 움직임
+- minimax ?
+    - **평가 기능이 없다. 최대 깊이 없음.**
+    - **끝까지 내려가서 탐색**
+- rolloutstrategyhelper → rollout
+    - 방어전략
+    - 불리할 경우에 어떻게 이동해야 할지에 대한 전략을 코드로 구현해 둔 것 같습니다.
+    - 휴리스틱 - 완전탐색에 기초, 불충분한 시간이나 정보로 인하여 합리적인 판단을 할 수 없거나, 체계적이면서 합리적인 판단이 굳이 필요하지 않은 상황에서 사람들이 빠르게 사용할 수 있게 보다 용이하게 구성된 간편 추론의 방법이다.
+- montecarlotreenode
+    - node 선택, 확장, rollout, 역전파 시에 작용이 코드화 되어 있음
+    - ucb도 함수화되어 있음
+- montecarlotreesearch
+    - 위의 class를 재귀를 통해 방문하여 최적의 움직임을 찾는 class가 선언되어 있습니다.
+    - montecarlotreenode를 통해 root를 설정하고 simulation을 돌립니다.
+    - ucb를 통해 자식 노드를 선택합니다.
+- main
+    - montecarlotreesearch를 호출하고 있습니다.
