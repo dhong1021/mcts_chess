@@ -6,3 +6,11 @@
 -------------------------------------------------------------------------------------
 ### MCTS Chess.py
 - Chess library와 MCTS가 적용된 체스 프로그램 (진행중)
+
+-------------------------------------------------------------------------------------
+
+#### Reference
+##### python chess library
+https://python-chess.readthedocs.io/en/latest/index.html
+##### Monte Carlo Tree Search Application on Chess
+https://medium.com/@ishaan.gupta0401/monte-carlo-tree-search-application-on-chess-5573fc0efb75
