@@ -1,10 +1,6 @@
 import numpy as np
 from collections import defaultdict
 
-from __future__ import annotations
-import logging
-
-
 class MonteCarloTreeSearchNode():
     def __init__(self, state, parent=None, parent_action=None):
         # 생성자 > 변수들 초기화
