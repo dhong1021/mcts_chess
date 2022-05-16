@@ -1,11 +1,161 @@
 import chess
-import math
 import random
-import sys
+from math import log,sqrt,e,inf
+
+import chess.svg
 import time
+from IPython.display import SVG
+
+from copy import deepcopy
 
 
+# MCTS
+class node():
+    def __init__(self):
+        self.state = chess.Board()  # state = 보드의 상태
+        self.action = ''
+        self.children = set()
+        self.parent = None
+        self.N = 0  # Number of times parent node has been visited
+        self.n = 0  # number of times child node has been visited
+        self.v = 0  # winning score of current node
 
+# def ucb1(curr_node):
+#     ans = curr_node.v+2*(sqrt(log(curr_node.N+e+(10**-6))/(curr_node.n+(10**-10))))
+#     return ans
+
+def rollout(curr_node): 
+    if(curr_node.state.is_game_over()): # 현재 노드에서 게임이 끝나면 (leaf 노드에 도달)
+        board = curr_node.state
+        if(board.result()=='1-0'): # chess library result: 이기면 '1-0' 지면 '0-1' 비기면 '1/2-1/2'를 return
+            return (1,curr_node) # 이겼으면 +1
+        elif(board.result()=='0-1'):
+            return (-1,curr_node) # 졌으면 -1
+        else:
+            return (0.5,curr_node) # 비겼으면 +0.5
+    
+    all_moves = [move for move in list(curr_node.state.legal_moves)] # 이동 가능한 모든 이동의 리스트
+    
+    for i in all_moves:
+        tmp_state = chess.Board(curr_node.state.fen())
+        tmp_state.push(i) # 현재 보드에서 가능한 이동을 하나씩 해봄
+        child = node() # 자식 노드를 하나 만들고
+        child.state = tmp_state 
+        child.parent = curr_node # 현재 노드가 부모가 됨
+        curr_node.children.add(child) # 현재 노드에 모든 이동들이 자식 노드로 추가됨
+    rnd_state = random.choice(list(curr_node.children)) # 자식들 중 랜덤 선택
+
+    return rollout(rnd_state)
+
+def expand(curr_node,white): # white = 1
+    if(len(curr_node.children)==0): # 자식 없음 = leaf 노드에 도달
+        return curr_node
+    
+    # max_ucb = -inf
+    if(white):
+        # idx = -1
+        # max_ucb = -inf
+        # sel_child = None
+        # for i in curr_node.children:
+        #     tmp = ucb1(i)
+        #     if(tmp>max_ucb):
+        #         idx = i
+        #         max_ucb = tmp
+        #         sel_child = i
+        return (expand(random.choice(list(curr_node.children)), 0)) # white턴에는 random한 자식을 다음 노드로 선택하고 expand
+
+    else:
+        # idx = -1
+        # min_ucb = inf
+        # sel_child = None
+        # for i in curr_node.children:
+        #     tmp = ucb1(i)
+        #     if(tmp<min_ucb):
+        #         idx = i
+        #         min_ucb = tmp
+        #         sel_child = i
+        return (expand(random.choice(list(curr_node.children)), 1)) # black턴에는 random한 자식을 다음 노드로 선택하고 expand
+
+def rollback(curr_node,reward):
+    curr_node.n+=1  # 노드의 방문수 1 증가
+    curr_node.v+=reward  # 노드의 승점을 reward만큼 증가 (이기면 +1, 지면 -1, 비기면 +0.5)
+    while(curr_node.parent!=None): # 부모가 있으면 (root 노드에 갈 때 까지)
+        curr_node.N+=1 # 부모 노드의 방문수 1증가
+        curr_node = curr_node.parent # 현재 노드를 부모 노드로 바꾸면서 한단계씩 윗노드로 올라감
+    return curr_node
+
+def mcts_pred(curr_node,over,white,iterations=10): # 반복횟수 설정 iterations
+    if(over): # board.is_game_over()
+        return -1
+    
+    all_moves = [move for move in list(curr_node.state.legal_moves)] # 가능한 모든 이동 리스트
+    map_state_move = dict()
+    
+    for i in all_moves:  
+        tmp_state = chess.Board(curr_node.state.fen())
+        tmp_state.push(i)  
+        child = node()
+        child.state = tmp_state
+        child.parent = curr_node
+        curr_node.children.add(child)
+        map_state_move[child] = i
+        
+    while(iterations>0): 
+        if(white):
+            # idx = -1
+            # max_ucb = -inf
+            # sel_child = None
+            # for i in curr_node.children:
+            #     tmp = ucb1(i)
+            #     if(tmp>max_ucb):
+            #         idx = i
+            #         max_ucb = tmp
+            #         sel_child = i
+            ex_child = expand(random.choice(list(curr_node.children)), 0)
+            reward,state = rollout(ex_child)
+            curr_node = rollback(state,reward)
+            iterations-=1  # expand -> rollout -> rollback -> iteration -= 1
+            
+        else:
+            # idx = -1
+            # min_ucb = inf
+            # sel_child = None
+            # for i in curr_node.children:
+            #     tmp = ucb1(i)
+            #     if(tmp<min_ucb):
+            #         idx = i
+            #         min_ucb = tmp
+            #         sel_child = i
+            ex_child = expand(random.choice(list(curr_node.children)), 1)
+            reward,state = rollout(ex_child)
+            curr_node = rollback(state,reward)
+            iterations-=1
+            
+    if(white):
+        # mx = -inf
+        # idx = -1
+        # selected_move = ''
+        # for i in (curr_node.children):
+        #     tmp = ucb1(i)
+        #     if(tmp>mx):
+        #         mx = tmp
+        selected_move = map_state_move[child]
+        return selected_move
+    
+    else:
+        # mn = inf
+        # idx = -1
+        # selected_move = ''
+        # for i in (curr_node.children):
+        #     tmp = ucb1(i)
+        #     if(tmp<mn):
+        #         mn = tmp
+        selected_move = map_state_move[child]
+        return selected_move
+    
+    
+    
+# MMAB
 def minimaxRoot(depth, board,isMaximizing):
     possibleMoves = board.legal_moves
     bestMove = -9999
@@ -103,58 +253,33 @@ def getPieceValue(piece):
     return value
 
 
-def randomPiece():
-    while True:
-        random_alpha = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-        random_choice = []
-        for _ in range(2):
-            x = random.choice(random_alpha)
-            y = random.randrange(1, 9, 1)
-            random_choice.append(str(x) + str(y))
-
-        enter_move = random_choice[0] + random_choice[1]
-        
-        if random_choice[0] == random_choice[1]:  #'d7d7'처럼 똑같은 경우 0000으로 입력해야 함
-            continue
-        else:
-            pass
-        if (chess.Move.from_uci(enter_move) in board.legal_moves) is False:   #이동할 수 없는 위치로 이동시킬 경우
-            continue
-        else:
-            break
-    return enter_move
-
 def main():
-    global board
     board = chess.Board()
-    n = 0
-    print(board)
-    while n < 100:
-        if n%2 == 0:
-            print("Random Turn:")
-            move = randomPiece()
-            move = chess.Move.from_uci(str(move))
-            board.push(move)
-            time.sleep(1)
-            print("\n")
-        else:
-            print("MMAB Turn:")
-            move = minimaxRoot(3,board,True)
-            move = chess.Move.from_uci(str(move))
-            board.push(move)
-            time.sleep(1)
-            print("\n")
-        print(board)
-        n += 1
+    SVG(chess.svg.board(board = board,size=400))
 
+    while True:
+        # MCTS move
+        root = node()
+        white = 1
+        mov = mcts_pred(root, board.is_game_over(), white)
+        board.push(mov)
+        print("MCTS Turn:")
+        SVG(chess.svg.board(board = board,size=400))
+        time.sleep(1)
+        print(board)
+        print("\n")
+
+        # MMAB move
+        print("MMAB Turn:")
+        move = minimaxRoot(3,board,True)
+        move = chess.Move.from_uci(str(move))
+        board.push(move)
+        SVG(chess.svg.board(board = board,size=400))
+        time.sleep(1)
+        print(board)
+        print("\n")
+    
+    board.outcome()
+        
 if __name__ == "__main__":
     main()
-    
-    
-    
-    
-board.is_stalemate()  #교착 상태
-
-board.is_insufficient_material()   #기물 부족(양 쪽의 킹만 남거나, 킹 + 비숍, 킹 + 나이트.)
-
-board.outcome()   #결과
