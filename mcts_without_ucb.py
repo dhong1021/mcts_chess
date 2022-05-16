@@ -1,7 +1,5 @@
 import chess
 import random
-from math import log, sqrt, e, inf
-
 
 class node():
     def __init__(self):
@@ -12,11 +10,6 @@ class node():
         self.N = 0  # Number of times parent node has been visited
         self.n = 0  # number of times child node has been visited
         self.v = 0  # winning score of current node
-
-
-def ucb(curr_node):
-    ans = curr_node.v + 2 * (sqrt(log(curr_node.N + e + (10 ** -6)) / (curr_node.n + (10 ** -10))))
-    return ans
 
 
 def rollout(curr_node):
@@ -46,37 +39,16 @@ def rollout(curr_node):
 def expand(curr_node, white):  # white = 1
     if len(curr_node.children) == 0:  # 자식 없음 = leaf 노드에 도달
         return curr_node
-
-    max_ucb = -inf
     if white:
-        idx = -1
-        max_ucb = -inf
-        sel_child = None
-        for i in curr_node.children:
-            tmp = ucb(i)
-            if tmp > max_ucb:
-                idx = i
-                max_ucb = tmp
-                sel_child = i
-        return expand(sel_child, 0)  # white턴에는 max_ucb를 가진 자식을 다음 노드로 선택하고 expand
-
+        return expand(random.choice(list(curr_node.children)), 0)  # white턴에는 random한 자식을 다음 노드로 선택하고 expand
     else:
-        idx = -1
-        min_ucb = inf
-        sel_child = None
-        for i in curr_node.children:
-            tmp = ucb(i)
-            if tmp < min_ucb:
-                idx = i
-                min_ucb = tmp
-                sel_child = i
-        return expand(sel_child, 1)  # black턴에는 min_ucb를 가진 자식을 다음 노드로 선택하고 expand
+        return expand(random.choice(list(curr_node.children)), 1)  # black턴에는 random한 자식을 다음 노드로 선택하고 expand
 
 
 def rollback(curr_node, reward):
     curr_node.n += 1  # 노드의 방문수 1 증가
     curr_node.v += reward  # 노드의 승점을 reward만큼 증가 (이기면 +1, 지면 -1, 비기면 +0.5)
-    while (curr_node.parent != None):  # 부모가 있으면 (root 노드에 갈 때 까지)
+    while curr_node.parent != None:  # 부모가 있으면 (root 노드에 갈 때 까지)
         curr_node.N += 1  # 부모 노드의 방문수 1증가
         curr_node = curr_node.parent  # 현재 노드를 부모 노드로 바꾸면서 한단계씩 윗노드로 올라감
     return curr_node
@@ -100,55 +72,23 @@ def mcts_pred(curr_node, over, white, iterations=10):  # 반복횟수 설정 ite
 
     while iterations > 0:
         if white:
-            idx = -1
-            max_ucb = -inf
-            sel_child = None
-            for i in curr_node.children:
-                tmp = ucb(i)
-                if tmp > max_ucb:
-                    idx = i
-                    max_ucb = tmp
-                    sel_child = i
-            ex_child = expand(sel_child, 0)
+            ex_child = expand(random.choice(list(curr_node.children)), 0)
             reward, state = rollout(ex_child)
             curr_node = rollback(state, reward)
             iterations -= 1  # expand -> rollout -> rollback -> iteration -= 1
 
         else:
-            idx = -1
-            min_ucb = inf
-            sel_child = None
-            for i in curr_node.children:
-                tmp = ucb(i)
-                if tmp < min_ucb:
-                    idx = i
-                    min_ucb = tmp
-                    sel_child = i
-            ex_child = expand(sel_child, 1)
+            ex_child = expand(random.choice(list(curr_node.children)), 1)
             reward, state = rollout(ex_child)
             curr_node = rollback(state, reward)
             iterations -= 1
 
-    if (white):
-        mx = -inf
-        idx = -1
-        selected_move = ''
-        for i in curr_node.children:
-            tmp = ucb(i)
-            if tmp > mx:
-                mx = tmp
-                selected_move = map_state_move[i]
+    if white:
+        selected_move = map_state_move[random.choice(list(curr_node.children))]
         return selected_move
 
     else:
-        mn = inf
-        idx = -1
-        selected_move = ''
-        for i in curr_node.children:
-            tmp = ucb(i)
-            if tmp < mn:
-                mn = tmp
-                selected_move = map_state_move[i]
+        selected_move = map_state_move[random.choice(list(curr_node.children))]
         return selected_move
 
 
