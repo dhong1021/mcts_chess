@@ -2,11 +2,12 @@ import chess
 import random
 import select_move
 import mmab_chess
-from math import log,sqrt,e,inf
+
+board = chess.Board()
 
 class node():
     def __init__(self):
-        self.state = chess.Board()  # state = 보드의 상태
+        self.state = board  # state = 보드의 상태
         self.action = ''
         self.children = set()
         self.parent = None
@@ -14,7 +15,7 @@ class node():
         self.n = 0  # number of times child node has been visited
         self.v = 0  # winning score of current node
 
-def rollout(curr_node): 
+def rollout(curr_node):
     if(curr_node.state.is_game_over() or curr_node.state.can_claim_draw()): # 현재 노드에서 게임이 끝나면 (leaf 노드에 도달)
         ro_board = curr_node.state
         if(ro_board.result()=='1-0'): # chess library result: 이기면 '1-0' 지면 '0-1' 비기면 '1/2-1/2'를 return
@@ -56,6 +57,7 @@ def rollback(curr_node,reward):
     return curr_node
 
 def mcts_pred(curr_node,over,white,iterations=2): # 반복횟수 설정 iterations
+    #chess.Board.clear_stack(curr_node.state)
     if(over): # board.is_game_over()
         return -1
     
@@ -83,24 +85,25 @@ def mcts_pred(curr_node,over,white,iterations=2): # 반복횟수 설정 iteratio
             curr_node = rollback(state,reward)
             iterations-=1
     selected_move = map_state_move[random.choice(list(curr_node.children))]
-    while(curr_node.state.piece_at(chess.parse_square(chess.Board.uci(curr_node.state, selected_move)[0:2])) is None):
+    '''while(curr_node.state.piece_at(chess.parse_square(chess.Board.uci(curr_node.state, selected_move)[0:2])) is None):
         selected_move = map_state_move[random.choice(list(curr_node.children))]
+        '''
     return selected_move
 
 ##############################
-board = chess.Board()
+#board = chess.Board()
 while (not board.is_checkmate() and not board.is_stalemate() and not board.is_insufficient_material() and not board.is_seventyfive_moves() and not board.is_fivefold_repetition() and not board.is_fifty_moves()):
     if(board.turn):
         print("turn: MCTS")
         root = node()
         condition = board.is_game_over() or board.can_claim_draw()
         mov = mcts_pred(root, condition, board.turn)
-        try:
+        board.push(mov)
+        '''try:
             board.push(mov)
         except AssertionError:
-            print("assertion error")
             mov = mcts_pred(root, condition, board.turn)
-            board.push(mov)
+            board.push(mov)'''
     else:
         print("turn: MMAB")
         mov = mmab_chess.selectmove(board, 2)
