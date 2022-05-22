@@ -1,0 +1,290 @@
+import chess
+import random
+from math import e, inf, log, sqrt
+
+board = chess.Board()
+
+
+#MCTS
+class node():
+    def __init__(self):
+        self.state = board  # state = 보드의 상태
+        self.action = ''
+        self.children = set()
+        self.parent = None
+        self.t = 0  # 부모 노드의 방문 횟수
+        self.n = 0  # 자식 노드의 방문 횟수
+        self.v = 0  # 현재 노드의 승점
+        
+def ucb(cur_node):
+    value = cur_node.v+2*(sqrt(log(cur_node.t+e+(10**-6))/(cur_node.n+(10**-10))))
+    return value
+
+def rollout(cur_node):
+    if(cur_node.state.is_game_over() or cur_node.state.can_claim_draw()): # 현재 노드에서 게임이 끝나면 (leaf 노드에 도달)
+        ro_board = cur_node.state
+        if(ro_board.result()=='1-0'): # chess library result: 이기면 '1-0' 지면 '0-1' 비기면 '1/2-1/2'를 return
+            return (1,cur_node) # 이겼으면 +1
+        elif(ro_board.result()=='0-1'):
+            return (-1,cur_node) # 졌으면 -1
+        else:
+            return (0.5,cur_node) # 비겼으면 +0.5
+    
+    all_legal_moves = [i for i in list(cur_node.state.legal_moves)] # 이동 가능한 모든 이동의 리스트
+    temp_fen = cur_node.state.fen()
+    for i in all_legal_moves:
+        temp_state = chess.Board(temp_fen)
+        temp_state.push(i) # 현재 보드에서 가능한 이동을 하나씩 해봄
+        child = node() # 자식 노드를 하나 만들고
+        child.state = temp_state
+        child.parent = cur_node # 현재 노드가 부모가 됨
+        cur_node.children.add(child) # 현재 노드에 모든 이동들이 자식 노드로 추가됨
+    #random_state = random.choice(list(cur_node.children)) # 자식들 중 랜덤 선택
+    
+    condition = board.is_game_over() or board.can_claim_draw()
+    highest_score = 0
+    temp_node = ""
+    for i in list(cur_node.children):
+        #temp_simul = mcts(i, condition, board.turn)
+        score = i.v
+        #print(score)
+        if highest_score < score:
+            highest_score = score
+            temp_node = i
+        else:
+            pass
+        #print(temp_simul)
+    
+    return rollout(highest_score)
+    #return rollout(random_state)
+
+def expand(cur_node,white): # white = 1
+    if(len(cur_node.children)==0): # 자식 없음 = leaf 노드에 도달
+        return cur_node
+    
+    maxucb = -inf
+    if(white):
+        index = -1
+        maxucb = -inf
+        ucb_child = None
+        for i in cur_node.children:
+            temp = ucb(i)
+            if(temp > maxucb):
+                index = i
+                maxucb = temp
+                ucb_child = i
+        return(expand(ucb_child,0)) # white턴에는 maxucb를 가진 자식을 다음 노드로 선택하고 expand
+
+    else:
+        index = -1
+        minucb = inf
+        ucb_child = None
+        for i in cur_node.children:
+            temp = ucb(i)
+            if(temp < minucb):
+                index = i
+                minucb = temp
+                ucb_child = i
+        return expand(ucb_child,1) # black턴에는 minucb를 가진 자식을 다음 노드로 선택하고 expand
+
+def rollback(cur_node,reward):
+    cur_node.n+=1  # 노드의 방문수 1 증가
+    cur_node.v+=reward  # 노드의 승점을 reward만큼 증가 (이기면 +1, 지면 -1, 비기면 +0.5)
+    while(cur_node.parent!=None): # 부모가 있으면 (root 노드에 갈 때 까지)
+        cur_node.t+=1 # 부모 노드의 방문수 1증가
+        cur_node = cur_node.parent # 현재 노드를 부모 노드로 바꾸면서 한단계씩 윗노드로 올라감
+    return cur_node
+
+def mcts(cur_node,over,white,iterations=5): # 반복횟수 설정 iterations
+    #chess.Board.clear_stack(curr_node.state)
+    if(over): # board.is_game_over()
+        return -1
+    
+    all_legal_moves = [i for i in list(cur_node.state.legal_moves)] # 가능한 모든 이동 리스트
+    state_moves = dict()
+    
+    for i in all_legal_moves:
+        temp_state = chess.Board(cur_node.state.fen())
+        temp_state.push(i)  
+        child = node()
+        child.state = temp_state
+        child.parent = cur_node
+        cur_node.children.add(child)
+        state_moves[child] = i
+        
+    while(iterations>0):
+        if(white):
+            index = -1
+            maxucb = -inf
+            ucb_child = None
+            for i in cur_node.children:
+                temp = ucb(i)
+                if(temp>maxucb):
+                    index = i
+                    maxucb = temp
+                    ucb_child = i
+            expand_child = expand(random.choice(list(cur_node.children)),0)
+            reward,state = rollout(expand_child)
+            cur_node = rollback(state,reward)
+            iterations-=1  # expand -> rollout -> rollback -> iteration -= 1  
+        else:
+            index = -1
+            minucb = inf
+            ucb_child = None
+            for i in cur_node.children:
+                temp = ucb(i)
+                if(temp<minucb):
+                    index = i
+                    minucb = temp
+                    ucb_child = i
+            expand_child = expand(random.choice(list(cur_node.children)),1)
+            reward,state = rollout(expand_child)
+            cur_node = rollback(state,reward)
+            iterations-=1
+            
+            
+    if(white):
+        maxucb_2 = -inf
+        index = -1
+        selected_move = ''
+        for i in (cur_node.children):
+            temp = ucb(i)
+            if(temp>maxucb_2):
+                maxucb_2 = temp
+                selected_move = state_moves[i]
+        return selected_move
+    
+    else:
+        minucb_2 = inf
+        index = -1
+        selected_move = ''
+        for i in (cur_node.children):
+            temp = ucb(i)
+            if(temp<minucb_2):
+                minucb_2 = temp
+                selected_move = state_moves[i]
+        return selected_move
+
+
+
+# MMAB
+def minimaxRoot(depth, board,isMaximizing):
+    possibleMoves = board.legal_moves
+    bestMove = -9999
+    bestMoveFinal = None
+    for x in possibleMoves:
+        move = chess.Move.from_uci(str(x))
+        board.push(move)
+        value = max(bestMove, minimax(depth - 1, board,-10000,10000, not isMaximizing))
+        board.pop()
+        if( value > bestMove):
+            print("Best score: " ,str(bestMove))
+            print("Best move: ",str(bestMoveFinal))
+            bestMove = value
+            bestMoveFinal = move
+    return bestMoveFinal
+
+def minimax(depth, board, alpha, beta, is_maximizing):
+    if(depth == 0):
+        return -evaluation(board)
+    possibleMoves = board.legal_moves
+    if(is_maximizing):
+        bestMove = -9999
+        for x in possibleMoves:
+            move = chess.Move.from_uci(str(x))
+            board.push(move)
+            bestMove = max(bestMove,minimax(depth - 1, board,alpha,beta, not is_maximizing))
+            board.pop()
+            alpha = max(alpha,bestMove)
+            if beta <= alpha:
+                return bestMove
+        return bestMove
+    else:
+        bestMove = 9999
+        for x in possibleMoves:
+            move = chess.Move.from_uci(str(x))
+            board.push(move)
+            bestMove = min(bestMove, minimax(depth - 1, board,alpha,beta, not is_maximizing))
+            board.pop()
+            beta = min(beta,bestMove)
+            if(beta <= alpha):
+                return bestMove
+        return bestMove
+
+
+def calculateMove(board):
+    possible_moves = board.legal_moves
+    if(len(possible_moves) == 0):
+        print("No more possible moves...Game Over")
+        sys.exit()
+    bestMove = None
+    bestValue = -9999
+    n = 0
+    for x in possible_moves:
+        move = chess.Move.from_uci(str(x))
+        board.push(move)
+        boardValue = -evaluation(board)
+        board.pop()
+        if(boardValue > bestValue):
+            bestValue = boardValue
+            bestMove = move
+
+    return bestMove
+
+def evaluation(board):
+    i = 0
+    evaluation = 0
+    x = True
+    try:
+        x = bool(board.piece_at(i).color)
+    except AttributeError as e:
+        x = x
+    while i < 63:
+        i += 1
+        evaluation = evaluation + (getPieceValue(str(board.piece_at(i))) if x else -getPieceValue(str(board.piece_at(i))))
+    return evaluation
+
+
+def getPieceValue(piece):
+    if(piece == None):
+        return 0
+    value = 0
+    if piece == "P" or piece == "p":
+        value = 10
+    if piece == "N" or piece == "n":
+        value = 30
+    if piece == "B" or piece == "b":
+        value = 30
+    if piece == "R" or piece == "r":
+        value = 50
+    if piece == "Q" or piece == "q":
+        value = 90
+    if piece == 'K' or piece == 'k':
+        value = 900
+    #value = value if (board.piece_at(place)).color else -value
+    return value
+
+##############################
+#board = chess.Board()
+while (not board.is_checkmate() and not board.is_stalemate() and not board.is_insufficient_material() and not board.is_seventyfive_moves() and not board.is_fivefold_repetition() and not board.is_fifty_moves()):
+    if(board.turn):
+        print("turn: MCTS")
+        root = node()
+        condition = board.is_game_over() or board.can_claim_draw()
+        mov = mcts(root, condition, board.turn)
+        #mctsmov = chess.Move.from_uci(str(mov))
+        board.push(mov)
+
+    else:
+        # MMAB move
+        print("MMAB Turn:")
+        move = minimaxRoot(3,board,True)
+        move = chess.Move.from_uci(str(move))
+        board.push(move)
+
+    print(board)
+    print()
+
+print(chess.Board.outcome(board))
+if board.is_fifty_moves():
+    print("fifty moves")
