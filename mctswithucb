@@ -2,6 +2,9 @@ import chess
 import random
 from math import e, inf, log, sqrt
 
+import sys
+sys.setrecursionlimit(10**5)
+
 board = chess.Board()
 
 
@@ -39,24 +42,30 @@ def rollout(cur_node):
         child.state = temp_state
         child.parent = cur_node # 현재 노드가 부모가 됨
         cur_node.children.add(child) # 현재 노드에 모든 이동들이 자식 노드로 추가됨
-    #random_state = random.choice(list(cur_node.children)) # 자식들 중 랜덤 선택
-    
-    condition = board.is_game_over() or board.can_claim_draw()
+    random_state = random.sample(list(cur_node.children), 3) # 자식들 중 랜덤 선택
+    #max_v = rollback.max_node_v
+    #condition = board.is_game_over() or board.can_claim_draw()
     highest_score = 0
-    temp_node = ""
-    for i in list(cur_node.children):
-        #temp_simul = mcts(i, condition, board.turn)
-        score = i.v
-        #print(score)
-        if highest_score < score:
-            highest_score = score
-            temp_node = i
-        else:
-            pass
-        #print(temp_simul)
+    #temp_node = ""
+    for i in random_state:
+        temp_simul = mcts(i, condition, board)
+        
+        #print(i)
+        # reward,state = rollout(i)
+        # temp_node = rollback(state,reward)
+        maxnode = rollback.max_node
+#         score = temp_node.v
+#         #print(score)
+#         if highest_score < score:
+#             highest_score = score
+#             #temp_node = i
+#         else:
+#             pass
+#         #print(temp_simul)
     
-    return rollout(highest_score)
+    # return rollout(highest_score)
     #return rollout(random_state)
+    return rollout(max_node)
 
 def expand(cur_node,white): # white = 1
     if(len(cur_node.children)==0): # 자식 없음 = leaf 노드에 도달
@@ -90,6 +99,11 @@ def expand(cur_node,white): # white = 1
 def rollback(cur_node,reward):
     cur_node.n+=1  # 노드의 방문수 1 증가
     cur_node.v+=reward  # 노드의 승점을 reward만큼 증가 (이기면 +1, 지면 -1, 비기면 +0.5)
+    max_node_v = 0
+    max_node = ""
+    if max_node_v < cur_node.v:
+        max_node_v = cur_node.v
+        max_node = cur_node
     while(cur_node.parent!=None): # 부모가 있으면 (root 노드에 갈 때 까지)
         cur_node.t+=1 # 부모 노드의 방문수 1증가
         cur_node = cur_node.parent # 현재 노드를 부모 노드로 바꾸면서 한단계씩 윗노드로 올라감
@@ -178,8 +192,8 @@ def minimaxRoot(depth, board,isMaximizing):
         value = max(bestMove, minimax(depth - 1, board,-10000,10000, not isMaximizing))
         board.pop()
         if( value > bestMove):
-            print("Best score: " ,str(bestMove))
-            print("Best move: ",str(bestMoveFinal))
+            #print("Best score: " ,str(bestMove))
+            #print("Best move: ",str(bestMoveFinal))
             bestMove = value
             bestMoveFinal = move
     return bestMoveFinal
@@ -266,14 +280,16 @@ def getPieceValue(piece):
 
 ##############################
 #board = chess.Board()
-while (not board.is_checkmate() and not board.is_stalemate() and not board.is_insufficient_material() and not board.is_seventyfive_moves() and not board.is_fivefold_repetition() and not board.is_fifty_moves()):
+while (not board.is_checkmate() and not board.is_stalemate() and not board.is_insufficient_material() and not board.is_seventyfive_moves() and not board.is_fivefold_repetition() and not board.is_fifty_moves() and not board.is_repetition()):
     if(board.turn):
         print("turn: MCTS")
         root = node()
         condition = board.is_game_over() or board.can_claim_draw()
         mov = mcts(root, condition, board.turn)
         #mctsmov = chess.Move.from_uci(str(mov))
-        board.push(mov)
+        #board.push(mctsmov)
+        board.push_san(str(mov))
+        #print(mctsmov)
 
     else:
         # MMAB move
@@ -281,6 +297,7 @@ while (not board.is_checkmate() and not board.is_stalemate() and not board.is_in
         move = minimaxRoot(3,board,True)
         move = chess.Move.from_uci(str(move))
         board.push(move)
+        print(move)
 
     print(board)
     print()
