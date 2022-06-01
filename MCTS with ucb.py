@@ -1,5 +1,3 @@
-Python 3.10.4 (v3.10.4:9d38120e33, Mar 23 2022, 17:29:05) [Clang 13.0.0 (clang-1300.0.29.30)] on darwin
-Type "help", "copyright", "credits" or "license()" for more information.
 import chess
 import random
 from math import log,sqrt,e,inf
@@ -305,7 +303,6 @@ board = chess.Board()
 white = 1
 while not board.is_game_over(claim_draw=True):
     if board.turn:
-        all_moves = [board.san(i) for i in list(board.legal_moves)]
         print('MCTS')
         root = node()
         root.state = board
@@ -320,6 +317,7 @@ while not board.is_game_over(claim_draw=True):
             child.parent = root
             root.children.add(child)
             map_state_move[child] = i
+            
         result = mcts_pred(root,board.is_game_over(),white, 5)
         board.push_san(result)
         print(result)
