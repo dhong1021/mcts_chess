@@ -195,9 +195,9 @@ def evaluate_board():
     
     eval = material + pawnsq + knightsq + bishopsq+ rooksq+ queensq + kingsq
     if board.turn:
-        return -eval  
+        return eval  ## -eval?
     else:
-        return eval  
+        return -eval  
     
 pawntable = [
  0,  0,  0,  0,  0,  0,  0,  0,
@@ -310,46 +310,44 @@ def selectmove(depth):
             alpha = boardValue 
         board.pop() 
     return bestMove
-board = chess.Board()
 
-start_time = time.time()
-white = 1
-#over_condition = board.is_game_over() or board.can_claim_draw()
-while (chess.Board.outcome(board) is None):
-    if board.turn:
-        print('MCTS')
-        root = node()
-        root.state = board
-        all_moves = [root.state.san(i) for i in list(root.state.legal_moves)]
-        map_state_move = dict()
-    
-        for i in all_moves:
-            tmp_state = chess.Board(root.state.fen())
-            tmp_state.push_san(i)
-            child = node()
-            child.state = tmp_state
-            child.parent = root
-            root.children.add(child)
-            map_state_move[child] = i
-            
-        result = mcts_pred(root,chess.Board.outcome(board),white, 3)
-        board.push_san(result)
-        print(result)
-        print(board)
-        print()
-    else:
-        print('MMAB')
-        move = selectmove(3)
-        board.push(move)
-        print(move)
-        print(board)
-        print()
+for i in range(10):
+    print("try count: ", i+1)
+    board = chess.Board()
+    start_time = time.time()
+    white = 1
+    while (chess.Board.outcome(board) is None):
+        if board.turn:    #board swap: if not board.turn
+            #print('MCTS')
+            root = node()
+            root.state = board
+            all_moves = [root.state.san(i) for i in list(root.state.legal_moves)]
+            map_state_move = dict()
 
-#print(board.result())
-print(chess.Board.outcome(board))
-if board.is_fifty_moves():
-    print("fifty moves")
-end_time = time.time()
-print(end_time - start_time, ' sec')
+            for i in all_moves:
+                tmp_state = chess.Board(root.state.fen())
+                tmp_state.push_san(i)
+                child = node()
+                child.state = tmp_state
+                child.parent = root
+                root.children.add(child)
+                map_state_move[child] = i
 
-#python3 mcts_ucb.py
+            result = mcts_pred(root,chess.Board.outcome(board),board.turn, 3)
+            board.push_san(result)
+            #print(result)
+            #print(board)
+            #print()
+        else:
+            #print('MMAB')
+            move = selectmove(3)
+            board.push(move)
+            #print(move)
+            #print(board)
+            #print()
+
+    print(chess.Board.outcome(board))
+    if board.is_fifty_moves():
+        print("fifty moves")
+    end_time = time.time()
+    print(end_time - start_time, ' sec')
