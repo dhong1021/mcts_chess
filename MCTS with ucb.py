@@ -282,7 +282,10 @@ def quiesce( alpha, beta ):
     return alpha
 
 
-def selectmove(depth):
+def selectmove(depth, over):
+    if(over):
+        return -1
+    
     bestMove = chess.Move.null()
     bestValue = -99999
     alpha = -100000
@@ -297,43 +300,43 @@ def selectmove(depth):
             alpha = boardValue 
         board.pop() 
     return bestMove
-board = chess.Board()
 
+for _ in range(10):
+    board = chess.Board()
+    white = 1
+    while chess.Board.outcome(board) == None:
+        if board.turn:
+            all_moves = [board.san(i) for i in list(board.legal_moves)]
+            # print('MCTS')
+            root = node()
+            root.state = board
+            all_moves = [root.state.san(i) for i in list(root.state.legal_moves)]
+            map_state_move = dict()
+        
+            for i in all_moves:
+                tmp_state = chess.Board(root.state.fen())
+                tmp_state.push_san(i)
+                child = node()
+                child.state = tmp_state
+                child.parent = root
+                root.children.add(child)
+                map_state_move[child] = i
+            result = mcts_pred(root,board.is_game_over(),white, 2)
+            board.push_san(result)
+            # print(result)
+            # print('a b c d e f g h')
+            # print('---------------')
+            # print(board)
+            # print()
+        else:
+            # print('MMAB')
+            move = selectmove(3)
+            board.push(move)
+            # print(move)
+            # print('a b c d e f g h')
+            # print('---------------')
+            # print(board)
+            # print()
 
-white = 1
-while not board.is_game_over(claim_draw=True):
-    if board.turn:
-        print('MCTS')
-        root = node()
-        root.state = board
-        all_moves = [root.state.san(i) for i in list(root.state.legal_moves)]
-        map_state_move = dict()
-    
-        for i in all_moves:
-            tmp_state = chess.Board(root.state.fen())
-            tmp_state.push_san(i)
-            child = node()
-            child.state = tmp_state
-            child.parent = root
-            root.children.add(child)
-            map_state_move[child] = i
-            
-        result = mcts_pred(root,board.is_game_over(),white, 5)
-        board.push_san(result)
-        print(result)
-        print('a b c d e f g h')
-        print('---------------')
-        print(board)
-        print()
-    else:
-        print('MMAB')
-        move = selectmove(1)
-        board.push(move)
-        print(move)
-        print('a b c d e f g h')
-        print('---------------')
-        print(board)
-        print()
-
-print(board.result())
-print(chess.Board.outcome(board))
+    print(board.result())
+    print(chess.Board.outcome(board))
