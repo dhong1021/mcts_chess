@@ -91,7 +91,7 @@ def rollback(curr_node,reward):
         curr_node = curr_node.parent
     return curr_node
 
-def mcts_pred(curr_node,over,white,iterations=2):
+def mcts_pred(curr_node,over,white,iterations=5):
     if(over != None):
         return -1
         
@@ -195,9 +195,9 @@ def evaluate_board():
     
     eval = material + pawnsq + knightsq + bishopsq+ rooksq+ queensq + kingsq
     if board.turn:
-        return eval  ## -eval?
+        return -eval
     else:
-        return -eval  
+        return eval  
     
 pawntable = [
  0,  0,  0,  0,  0,  0,  0,  0,
@@ -317,7 +317,7 @@ for i in range(10):
     start_time = time.time()
     white = 1
     while (chess.Board.outcome(board) is None):
-        if board.turn:    #board swap: if not board.turn
+        if board.turn:    ####################################흑백바꾸는법: 이부분만 if not board.turn: 으로 변경
             #print('MCTS')
             root = node()
             root.state = board
@@ -333,7 +333,7 @@ for i in range(10):
                 root.children.add(child)
                 map_state_move[child] = i
 
-            result = mcts_pred(root,chess.Board.outcome(board),board.turn, 3)
+            result = mcts_pred(root,chess.Board.outcome(board),board.turn, 5)
             board.push_san(result)
             #print(result)
             #print(board)
