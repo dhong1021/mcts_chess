@@ -42,7 +42,7 @@ def rollout(curr_node, first_roll, true_3gram):
     epsgrd = random.randrange(10)
     if epsgrd > 3 and first_roll:
         if true_3gram:
-            ngram_move = ngram_enhanced_3gram(curr_node)
+            ngram_move = ngram_enhanced_4gram(curr_node)
         else:
             ngram_move = ngram_enhanced_2gram(curr_node)
         tmp_state = chess.Board(curr_node.state.fen())
@@ -72,7 +72,7 @@ def ngram_enhanced_3gram(curr_node):
     가중치가 최대인 조합일 때의 이동 반환
     '''
     base_board = chess.Board(curr_node.state.fen())
-    base_score = 0
+    base_score = -inf
     temp_best = ''
     base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/3))
     for i in base_sample:
@@ -103,7 +103,7 @@ def ngram_enhanced_3gram(curr_node):
 
 def ngram_enhanced_2gram(curr_node):
     base_board = chess.Board(curr_node.state.fen())
-    base_score = 0
+    base_score = -inf
     temp_best = ''
     base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/3))
     for i in base_sample:
@@ -122,6 +122,47 @@ def ngram_enhanced_2gram(curr_node):
                 base_score = temp_score_i + temp_score_j
                 temp_best = i
     return temp_best
+
+
+def ngram_enhanced_4gram(curr_node):
+    base_board = chess.Board(curr_node.state.fen())
+    base_score = -inf
+    temp_best = ''
+    base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/3))
+    for i in base_sample:
+        temp_board_i = chess.Board(base_board.fen())
+        temp_score_i = 0
+        if temp_board_i.is_capture(i):
+            temp_score_i = 1
+        temp_board_i.push(i)
+        temp_sample_i = random.sample(list(temp_board_i.legal_moves), ceil(len(list(temp_board_i.legal_moves))/3))
+        for j in temp_sample_i:
+            temp_board_j = chess.Board(temp_board_i.fen())
+            temp_score_j = 0
+            if temp_board_j.is_capture(j):
+                temp_score_j = -1
+            temp_board_j.push(j)
+            temp_sample_j = random.sample(list(temp_board_j.legal_moves), ceil(len(list(temp_board_j.legal_moves))/3))
+            for k in temp_sample_j:
+                temp_board_k = chess.Board(temp_board_j.fen())
+                temp_score_k = 0
+                if temp_board_k.is_capture(k):
+                    temp_score_k = 1
+                temp_board_k.push(k)
+                temp_sample_k = random.sample(list(temp_board_k.legal_moves), ceil(len(list(temp_board_k.legal_moves))/3))
+                for s in temp_sample_k:
+                    temp_board_s = chess.Board(temp_board_k.fen())
+                    temp_score_s = 0
+                    if temp_board_s.is_capture(s):
+                        temp_score_s = -1
+                    if base_score <= (temp_score_i + temp_score_j + temp_score_k + temp_score_s):
+                        base_score = temp_score_i + temp_score_j + temp_score_k + temp_score_s
+                        temp_best = i
+
+    return temp_best
+
+
+
 #이중시뮬
 def extra_rollout(curr_node):
     sim_result = -inf
@@ -202,7 +243,7 @@ def mcts_pred(curr_node,over,white,iterations=5):
                     sel_child = i
             ex_child = expand(sel_child,0)
 ############ngram 온오프, 3그램true/2그램false 스위치################
-            reward,state = rollout(ex_child, True, False)
+            reward,state = rollout(ex_child, False, True)
             #reward,state = extra_rollout(ex_child)
             curr_node = rollback(state,reward)
             iterations-=1
@@ -218,8 +259,8 @@ def mcts_pred(curr_node,over,white,iterations=5):
                     sel_child = i
             ex_child = expand(sel_child,1)
 ############ngram 온오프, 3그램true/2그램false 스위치################
-            #reward,state = rollout(ex_child, True, False)
-            reward,state = extra_rollout(ex_child)
+            reward,state = rollout(ex_child, True, True)
+            #reward,state = extra_rollout(ex_child)
             curr_node = rollback(state,reward)
             iterations-=1
     if(white):
@@ -253,7 +294,7 @@ def mcts_pred_wo_ucb(curr_node,over,white,iterations=5):
         if(white):
             ex_child = expand(random.choice(list(curr_node.children)),0)
 ############ngram 온오프, 3그램true/2그램false 스위치################
-            reward,state = rollout(ex_child, True, False)
+            reward,state = rollout(ex_child, False, True)
             #reward,state = extra_rollout(ex_child)
             curr_node = rollback(state,reward)
             iterations-=1  
@@ -453,14 +494,18 @@ fp = open('result.txt','a')
 white_avr_time = 0
 black_avr_time = 0
 count_turn = 0
-for i in range(7):
+for i in range(10):
     print("try count: ", i+1)
+    whole_time_begin = time.time()
     board = chess.Board()
     while (chess.Board.outcome(board) is None):
+        whole_time_end = time.time()
+        if (whole_time_end - whole_time_begin) > 2700:    #45분
+            break
         count_turn += 1
         if board.turn:    ####################################흑백바꾸는법: 이부분만 if not board.turn: 으로 변경
             time_white_begin = time.time()
-            print('ucb, ngram=2')
+            #print('ucb, ngram=3')
             root = node()
             root.state = board
             all_moves = [root.state.san(i) for i in list(root.state.legal_moves)]
@@ -475,22 +520,22 @@ for i in range(7):
                 root.children.add(child)
                 map_state_move[child] = i
 #### UCB 여부에 따라 아래를 mcts_pred 또는 mcts_pred_wo_ucb 로 사용
-            result = mcts_pred(root,chess.Board.outcome(board),board.turn, 5)
+            result = mcts_pred_wo_ucb(root,chess.Board.outcome(board),board.turn, 5)    #선공 pure mcts 고정
             board.push_san(result)
             time_white_end = time.time()
             time_white = time_white_end - time_white_begin
             white_avr_time += time_white
-            
+            '''
             print(result)
             print(board)
             print()
             print('this turn: ', time_white, '  avr time: ', white_avr_time / ceil(count_turn))
             print()
-            
+            '''
             
         else:
             time_black_begin = time.time()
-            print('ucb, extra rollout')
+            #print('ucb, ngram=2')
             '''result = selectmove(3)
             board.push(result)'''
             root = node()
@@ -512,13 +557,13 @@ for i in range(7):
             time_black_end = time.time()
             time_black = time_black_end - time_black_begin
             black_avr_time += time_black
-            
+            '''
             print(result)
             print(board)
             print()
             print('this turn: ', time_black, '  avr time: ', black_avr_time / ceil(count_turn/2))
             print()
-            
+            '''
 
     print(chess.Board.outcome(board))
     print('white avr: ', white_avr_time / ceil(count_turn/2), ' black avr: ', black_avr_time / ceil(count_turn/2))
