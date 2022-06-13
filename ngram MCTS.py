@@ -22,7 +22,7 @@ def pure_expand(cur_node):
     if len(cur_node.children) == 0:
         return cur_node
     
-    return expand(random.choice(list(cur_node.children)))
+    return pure_expand(random.choice(list(cur_node.children)))
     
 def ngram_rollout(cur_node, ngram):
     if chess.Board.outcome(cur_node.state) != None:
@@ -173,7 +173,7 @@ def ngram_mcts(cur_node, over, white_turn, iterations):
         
     while iterations > 0:
         expand_child = pure_expand(cur_node)
-        reward,state = Ngram_rollout(expand_child, True)
+        reward,state = ngram_rollout(expand_child, True)
         cur_node = rollback(state, reward)
         iterations -= 1
             
