@@ -7,63 +7,63 @@ class node():
         self.state = chess.Board()
         self.children = set()
         self.parent = None
-        self.N = 0
+        self.t = 0
         self.n = 0
         self.v = 0
         self.win = 0
         
-def winrate(curr_node):
-    if curr_node.n == 0:
+def winrate(cur_node):
+    if cur_node.n == 0:
         return 0
     else:
-        return curr_node.win / curr_node.n
+        return cur_node.win / cur_node.n
     
-def expand(curr_node, white):
-    if len(curr_node.children) == 0:
-        return curr_node
+def expand(cur_node, white):
+    if len(cur_node.children) == 0:
+        return cur_node
     
     if white:
-        return expand(random.choice(list(curr_node.children)), 0)
+        return expand(random.choice(list(cur_node.children)), 0)
 
     else:
-        return expand(random.choice(list(curr_node.children)), 1)
+        return expand(random.choice(list(cur_node.children)), 1)
     
-def rollout(curr_node, ngram):
-    if chess.Board.outcome(curr_node.state) != None:
-        board = curr_node.state
+def Ngram_rollout(cur_node, ngram):
+    if chess.Board.outcome(cur_node.state) != None:
+        board = cur_node.state
         if board.result() == '1-0':
-            return (1, curr_node)
+            return (1, cur_node)
         elif board.result() ==' 0-1':
-            return (-1, curr_node)
+            return (-1, cur_node)
         else:
-            return (0.5, curr_node)
+            return (0.5, cur_node)
     
-    all_moves = [curr_node.state.san(i) for i in list(curr_node.state.legal_moves)]
+    all_moves = [cur_node.state.san(i) for i in list(cur_node.state.legal_moves)]
     epsgrd = random.randrange(10)
     epsgrd_limit = 3
     
     if epsgrd > epsgrd_limit and ngram:
-        ngram_move = ngram_enhanced_3gram(curr_node)
-        tmp_state = chess.Board(curr_node.state.fen())
-        tmp_state.push(ngram_move)
+        ngram_move = ngram_enhanced_3gram(cur_node)
+        temp_state = chess.Board(cur_node.state.fen())
+        temp_state.push(ngram_move)
         child = node()
-        child.state = tmp_state
-        child.parent = curr_node
-        curr_node.children.add(child)
+        child.state = temp_state
+        child.parent = cur_node
+        cur_node.children.add(child)
     else:
-        for move in all_moves:
-            tmp_state = chess.Board(curr_node.state.fen())
-            tmp_state.push_san(move)
+        for i in all_moves:
+            temp_state = chess.Board(cur_node.state.fen())
+            temp_state.push_san(i)
             child = node()
-            child.state = tmp_state
-            child.parent = curr_node
-            curr_node.children.add(child)
+            child.state = temp_state
+            child.parent = cur_node
+            cur_node.children.add(child)
         
-    rnd_state = random.choice(list(curr_node.children))
-    return rollout(rnd_state, False)
+    random_state = random.choice(list(cur_node.children))
+    return Ngram_rollout(random_state, False)
 
-def ngram_enhanced_2gram(curr_node):
-    base_board = chess.Board(curr_node.state.fen())
+def ngram_enhanced_2gram(cur_node):
+    base_board = chess.Board(cur_node.state.fen())
     base_score = -inf
     temp_best = ''
     base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/2))
@@ -84,8 +84,8 @@ def ngram_enhanced_2gram(curr_node):
                 temp_best = i
     return temp_best
 
-def ngram_enhanced_3gram(curr_node):
-    base_board = chess.Board(curr_node.state.fen())
+def ngram_enhanced_3gram(cur_node):
+    base_board = chess.Board(cur_node.state.fen())
     base_score = -inf
     temp_best = ''
     base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/2))
@@ -113,8 +113,8 @@ def ngram_enhanced_3gram(curr_node):
                     temp_best = i
     return temp_best
 
-def ngram_enhanced_4gram(curr_node):
-    base_board = chess.Board(curr_node.state.fen())
+def ngram_enhanced_4gram(cur_node):
+    base_board = chess.Board(cur_node.state.fen())
     base_score = -inf
     temp_best = ''
     base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/2))
@@ -149,60 +149,59 @@ def ngram_enhanced_4gram(curr_node):
                         temp_best = i
     return temp_best
 
-def rollback(curr_node, reward):
-    while curr_node.parent != None:
-        curr_node.n += 1
-        curr_node.v += reward
-        curr_node.N += 1
+def rollback(cur_node, reward):
+    while cur_node.parent != None:
+        cur_node.n += 1
+        cur_node.v += reward
+        cur_node.t += 1
         if reward == 1:
-            curr_node.win += 1
-        curr_node = curr_node.parent
-    return curr_node
+            cur_node.win += 1
+        cur_node = cur_node.parent
+    return cur_node
 
-def mcts(curr_node, over, white, iterations):
+def mcts_Ngram(cur_node, over, white, iterations):
     if(over != None):
         return -1
     
     all_moves = [root.state.san(move) for move in list(root.state.legal_moves)]
-    map_state_move = dict()
+    state_moves = dict()
 
-    for move in all_moves:
-        tmp_state = chess.Board(root.state.fen())
-        tmp_state.push_san(move)
+    for i in all_moves:
+        temp_state = chess.Board(root.state.fen())
+        temp_state.push_san(i)
         child = node()
-        child.state = tmp_state
+        child.state = temp_state
         child.parent = root
         root.children.add(child)
-        map_state_move[child] = move
+        state_moves[child] = i
         
     while iterations > 0:
         if white:
-            ex_child = expand(curr_node, 0)
-            reward,state = rollout(ex_child, True)
-            curr_node = rollback(state, reward)
+            expand_child = expand(cur_node, 0)
+            reward,state = Ngram_rollout(expand_child, True)
+            cur_node = rollback(state, reward)
             iterations -= 1
         else:
-            ex_child = expand(curr_node, 1)
-            reward,state = rollout(ex_child, True)
-            curr_node = rollback(state, reward)
+            expand_child = expand(cur_node, 1)
+            reward,state = Ngram_rollout(expand_child, True)
+            cur_node = rollback(state, reward)
             iterations -= 1
             
     if white:
         mx = -inf
         selected_move = ''
-        for child in curr_node.children:
-            tmp = winrate(child)
-            if tmp > mx:
-                mx = tmp
-                selected_move = map_state_move[i]
+        for j in cur_node.children:
+            temp = winrate(j)
+            if temp > mx:
+                mx = temp
+                selected_move = state_moves[j]
         return selected_move
     else:
         mn = inf
         selected_move = ''
-        for child in curr_node.children:
-            tmp = winrate(child)
-            if tmp < mn:
-                mn = tmp
-                selected_move = map_state_move[i]
+        for j in cur_node.children:
+            temp = winrate(j)
+            if temp < mn:
+                mn = temp
+                selected_move = state_moves[j]
         return selected_move
-
