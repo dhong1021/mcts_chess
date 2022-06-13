@@ -1,4 +1,5 @@
 import random
+import chess
 from math import inf, ceil
 
 class node():
@@ -65,14 +66,14 @@ def ngram_enhanced_2gram(curr_node):
     base_board = chess.Board(curr_node.state.fen())
     base_score = -inf
     temp_best = ''
-    base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/3))
+    base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/2))
     for i in base_sample:
         temp_board_i = chess.Board(base_board.fen())
         temp_score_i = 0
         if temp_board_i.is_capture(i):
             temp_score_i = 1
         temp_board_i.push(i)
-        temp_sample_i = random.sample(list(temp_board_i.legal_moves), ceil(len(list(temp_board_i.legal_moves))/3))
+        temp_sample_i = random.sample(list(temp_board_i.legal_moves), ceil(len(list(temp_board_i.legal_moves))/2))
         for j in temp_sample_i:
             temp_board_j = chess.Board(temp_board_i.fen())
             temp_score_j = 0
@@ -87,21 +88,21 @@ def ngram_enhanced_3gram(curr_node):
     base_board = chess.Board(curr_node.state.fen())
     base_score = -inf
     temp_best = ''
-    base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/3))
+    base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/2))
     for i in base_sample:
         temp_board_i = chess.Board(base_board.fen())
         temp_score_i = 0
         if temp_board_i.is_capture(i):
             temp_score_i = 1
         temp_board_i.push(i)
-        temp_sample_i = random.sample(list(temp_board_i.legal_moves), ceil(len(list(temp_board_i.legal_moves))/3))
+        temp_sample_i = random.sample(list(temp_board_i.legal_moves), ceil(len(list(temp_board_i.legal_moves))/2))
         for j in temp_sample_i:
             temp_board_j = chess.Board(temp_board_i.fen())
             temp_score_j = 0
             if temp_board_j.is_capture(j):
                 temp_score_j = -1
             temp_board_j.push(j)
-            temp_sample_j = random.sample(list(temp_board_j.legal_moves), ceil(len(list(temp_board_j.legal_moves))/3))
+            temp_sample_j = random.sample(list(temp_board_j.legal_moves), ceil(len(list(temp_board_j.legal_moves))/2))
             for k in temp_sample_j:
                 temp_board_k = chess.Board(temp_board_j.fen())
                 temp_score_k = 0
@@ -116,28 +117,28 @@ def ngram_enhanced_4gram(curr_node):
     base_board = chess.Board(curr_node.state.fen())
     base_score = -inf
     temp_best = ''
-    base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/3))
+    base_sample = random.sample(list(base_board.legal_moves), ceil(len(list(base_board.legal_moves))/2))
     for i in base_sample:
         temp_board_i = chess.Board(base_board.fen())
         temp_score_i = 0
         if temp_board_i.is_capture(i):
             temp_score_i = 1
         temp_board_i.push(i)
-        temp_sample_i = random.sample(list(temp_board_i.legal_moves), ceil(len(list(temp_board_i.legal_moves))/3))
+        temp_sample_i = random.sample(list(temp_board_i.legal_moves), ceil(len(list(temp_board_i.legal_moves))/2))
         for j in temp_sample_i:
             temp_board_j = chess.Board(temp_board_i.fen())
             temp_score_j = 0
             if temp_board_j.is_capture(j):
                 temp_score_j = -1
             temp_board_j.push(j)
-            temp_sample_j = random.sample(list(temp_board_j.legal_moves), ceil(len(list(temp_board_j.legal_moves))/3))
+            temp_sample_j = random.sample(list(temp_board_j.legal_moves), ceil(len(list(temp_board_j.legal_moves))/2))
             for k in temp_sample_j:
                 temp_board_k = chess.Board(temp_board_j.fen())
                 temp_score_k = 0
                 if temp_board_k.is_capture(k):
                     temp_score_k = 1
                 temp_board_k.push(k)
-                temp_sample_k = random.sample(list(temp_board_k.legal_moves), ceil(len(list(temp_board_k.legal_moves))/3))
+                temp_sample_k = random.sample(list(temp_board_k.legal_moves), ceil(len(list(temp_board_k.legal_moves))/2))
                 for s in temp_sample_k:
                     temp_board_s = chess.Board(temp_board_k.fen())
                     temp_score_s = 0
