@@ -74,7 +74,7 @@ def pure_mcts(cur_node, over, white_turn, iterations):
         state_moves[child] = move
         
     while iterations > 0:
-        expand_child = expand(cur_node)
+        expand_child = pure_expand(cur_node)
         reward,state = pure_rollout(expand_child)
         cur_node = rollback(state, reward)
         iterations -= 1
