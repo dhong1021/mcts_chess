@@ -19,7 +19,7 @@ def winrate(cur_node):
         return cur_node.win / cur_node.n
 
 def ucb(cur_node):
-    c = sqrt(2)
+    c = 0.5
     ucb_value = winrate(cur_node) + c * sqrt(log(cur_node.t + e + (10**-6)) / (cur_node.n + (10**-10)))
     return ucb_value
     
