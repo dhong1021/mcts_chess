@@ -1,7 +1,6 @@
 import chess
 
-def evaluate_board(): 
-    
+def evaluate_board():  
     if board.is_checkmate():  
         if board.turn:
             return -9999  
@@ -110,42 +109,40 @@ kingstable = [
 -30,-40,-40,-50,-50,-40,-40,-30,
 -30,-40,-40,-50,-50,-40,-40,-30]
 
-def alphabeta( alpha, beta, depthleft ):  
+def alphabeta(alpha, beta, depthleft):  
     bestscore = -9999
-    if( depthleft == 0 ): 
-        return quiesce( alpha, beta )
+    if depthleft == 0: 
+        return quiesce(alpha, beta)
     for move in board.legal_moves: 
         board.push(move)   
-        score = -alphabeta( -beta, -alpha, depthleft - 1 )
+        score = -alphabeta(-beta, -alpha, depthleft - 1)
         board.pop() 
-        if( score >= beta ): 
+        if score >= beta: 
             return score
-        if( score > bestscore ):
+        if score > bestscore:
             bestscore = score
-        if( score > alpha ):
+        if score > alpha:
             alpha = score   
     return bestscore
 
-def quiesce( alpha, beta ):
+def quiesce(alpha, beta):
     stand_pat = evaluate_board() 
-    if( stand_pat >= beta ):
+    if stand_pat >= beta:
         return beta
-    if( alpha < stand_pat ):
+    if alpha < stand_pat:
         alpha = stand_pat
 
     for move in board.legal_moves:
         if board.is_capture(move):
             board.push(move)        
-            score = -quiesce( -beta, -alpha )
+            score = -quiesce(-beta, -alpha)
             board.pop()
 
-            if( score >= beta ):
+            if score >= beta:
                 return beta
-            if( score > alpha ):
+            if score > alpha:
                 alpha = score  
     return alpha
-
-import chess.polyglot
 
 def selectmove(depth):
     bestMove = chess.Move.null()
@@ -164,6 +161,13 @@ def selectmove(depth):
     return bestMove
 
 board = chess.Board()
-mov = selectmove(3)
-board.push(mov)
-
+while chess.Board.outcome(board) is None:
+    if board.turn:
+        next_move = selectmove(3)
+        board.push(next_move)
+        print(board)
+    else:
+        next_move = selectmove(3)
+        board.push(next_move)
+        print(board)
+print(chess.Board.outcome(board))
