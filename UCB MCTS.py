@@ -1,4 +1,5 @@
 import random
+import chess
 from math import inf, log, sqrt, e
 
 class node():
