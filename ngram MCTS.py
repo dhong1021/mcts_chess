@@ -18,17 +18,13 @@ def winrate(cur_node):
     else:
         return cur_node.win / cur_node.n
     
-def expand(cur_node, white):
+def pure_expand(cur_node):
     if len(cur_node.children) == 0:
         return cur_node
     
-    if white:
-        return expand(random.choice(list(cur_node.children)), 0)
-
-    else:
-        return expand(random.choice(list(cur_node.children)), 1)
+    return expand(random.choice(list(cur_node.children)))
     
-def Ngram_rollout(cur_node, ngram):
+def ngram_rollout(cur_node, ngram):
     if chess.Board.outcome(cur_node.state) != None:
         board = cur_node.state
         if board.result() == '1-0':
@@ -38,7 +34,7 @@ def Ngram_rollout(cur_node, ngram):
         else:
             return (0.5, cur_node)
     
-    all_moves = [cur_node.state.san(i) for i in list(cur_node.state.legal_moves)]
+    all_moves = [cur_node.state.san(move) for move in list(cur_node.state.legal_moves)]
     epsgrd = random.randrange(10)
     epsgrd_limit = 3
     
@@ -51,16 +47,16 @@ def Ngram_rollout(cur_node, ngram):
         child.parent = cur_node
         cur_node.children.add(child)
     else:
-        for i in all_moves:
+        for move in all_moves:
             temp_state = chess.Board(cur_node.state.fen())
-            temp_state.push_san(i)
+            temp_state.push_san(move)
             child = node()
             child.state = temp_state
             child.parent = cur_node
             cur_node.children.add(child)
         
     random_state = random.choice(list(cur_node.children))
-    return Ngram_rollout(random_state, False)
+    return ngram_rollout(random_state, False)
 
 def ngram_enhanced_2gram(cur_node):
     base_board = chess.Board(cur_node.state.fen())
@@ -159,49 +155,59 @@ def rollback(cur_node, reward):
         cur_node = cur_node.parent
     return cur_node
 
-def mcts_Ngram(cur_node, over, white, iterations):
+def ngram_mcts(cur_node, over, white_turn, iterations):
     if(over != None):
         return -1
     
     all_moves = [root.state.san(move) for move in list(root.state.legal_moves)]
     state_moves = dict()
 
-    for i in all_moves:
+    for move in all_moves:
         temp_state = chess.Board(root.state.fen())
-        temp_state.push_san(i)
+        temp_state.push_san(move)
         child = node()
         child.state = temp_state
         child.parent = root
         root.children.add(child)
-        state_moves[child] = i
+        state_moves[child] = move
         
     while iterations > 0:
-        if white:
-            expand_child = expand(cur_node, 0)
-            reward,state = Ngram_rollout(expand_child, True)
-            cur_node = rollback(state, reward)
-            iterations -= 1
-        else:
-            expand_child = expand(cur_node, 1)
-            reward,state = Ngram_rollout(expand_child, True)
-            cur_node = rollback(state, reward)
-            iterations -= 1
+        expand_child = pure_expand(cur_node)
+        reward,state = Ngram_rollout(expand_child, True)
+        cur_node = rollback(state, reward)
+        iterations -= 1
             
-    if white:
+    if white_turn:
         mx = -inf
         selected_move = ''
-        for j in cur_node.children:
-            temp = winrate(j)
+        for child in cur_node.children:
+            temp = winrate(child)
             if temp > mx:
                 mx = temp
-                selected_move = state_moves[j]
+                selected_move = state_moves[child]
         return selected_move
     else:
         mn = inf
         selected_move = ''
-        for j in cur_node.children:
-            temp = winrate(j)
+        for child in cur_node.children:
+            temp = winrate(child)
             if temp < mn:
                 mn = temp
-                selected_move = state_moves[j]
+                selected_move = state_moves[child]
         return selected_move
+
+board = chess.Board()
+while chess.Board.outcome(board) is None:
+    if board.turn:
+        root = node()
+        root.state = board
+        next_move = ngram_mcts(root, chess.Board.outcome(board), board.turn, 5)
+        board.push_san(next_move)
+        print(board)
+    else:
+        root = node()
+        root.state = board
+        next_move = ngram_mcts(root, chess.Board.outcome(board), board.turn, 5)
+        board.push_san(next_move)
+        print(board)
+print(chess.Board.outcome(board))
